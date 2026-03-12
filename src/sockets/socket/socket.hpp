@@ -37,8 +37,9 @@ namespace ShiraNet::Sockets {
         Socket& operator=(Socket&& other) noexcept;
         ~Socket();
 
-        void send(Buffer& buffer);
-        Buffer receive(unsigned int AmountOfBytesToRead);
+        void send(NetworkData::Message& Message);
+        NetworkData::Buffer receive(int bytesToRead);
+        NetworkData::Message receiveMessage();
         ShiraNet::Structs::AddressList getAddresses(char* ServerIP, std::string PortString);
         std::string getAddressInfoToStringIP();
     };

@@ -12,8 +12,8 @@ void server() {
     while (true) {
         ShiraNet::Sockets::TcpSocket client = socket.getClientConnection();
         std::cout << client.getAddressInfoToStringIP() << std::endl;
-        Buffer bufferToSend = client.receive(BUFFERSIZE);
-        client.send(bufferToSend);
+        ShiraNet::NetworkData::Message messageToSend(0, client.receiveMessage().payload);
+        client.send(messageToSend);
     }
 }
 
@@ -27,11 +27,11 @@ void client() {
     std::getline(std::cin, dataToSend);
     dataToSend += "\n";
 
-    Buffer bufferToSend{ BUFFERSIZE, dataToSend };
+    ShiraNet::NetworkData::Message messageToSend(0, dataToSend);
 
-    socket.send(bufferToSend);
-    Buffer data = socket.receive(bufferToSend.size);
-    std::cout << data.data;
+    socket.send(messageToSend);
+    ShiraNet::NetworkData::Message message = socket.receiveMessage();
+    std::cout << message.payload;
 }
 
 int main() {

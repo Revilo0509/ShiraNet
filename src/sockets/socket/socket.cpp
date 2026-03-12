@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 
@@ -80,26 +81,32 @@ void ShiraNet::Sockets::Socket::addStringIPToAddressInfo(char* ServerIP, std::st
     }
 }
 
-void ShiraNet::Sockets::Socket::send(Buffer& buffer) {
-    Logger::debug("Sending " + std::to_string(buffer.size) + " bytes");
-    ssize_t numberOfBytes = ::send(socketID, buffer.data.c_str(), buffer.size, 0);
+void ShiraNet::Sockets::Socket::send(ShiraNet::NetworkData::Message& Message) {
+    const int totalBytesToSend = sizeof(Message.id) + sizeof(Message.payloadSize) + Message.payload.size();
+
+    Logger::debug("Sending " + std::to_string(totalBytesToSend) + " bytes");
+    uint32_t networkMessageID = htonl(Message.id);
+    uint32_t networkPayloadSize = htonl(Message.payloadSize);
+    ssize_t numberOfBytes = ::send(socketID, reinterpret_cast<char*>(&networkMessageID), sizeof(networkMessageID), 0);
+    numberOfBytes += ::send(socketID, reinterpret_cast<char*>(&networkPayloadSize), sizeof(networkPayloadSize), 0);
+    numberOfBytes += ::send(socketID, Message.payload.data(), Message.payloadSize, 0);
 
     if (numberOfBytes < 0) {
         Logger::error("Send failed");
         throw Exception(ErrorCode::SendFailed, "Failed to send data", errno);
-    } else if (numberOfBytes != buffer.size) {
-        Logger::warning("Partial send: " + std::to_string(numberOfBytes) + "/" + std::to_string(buffer.size) + " bytes");
+    } else if (numberOfBytes != totalBytesToSend) {
+        Logger::warning("Partial send: " + std::to_string(numberOfBytes) + "/" + std::to_string(totalBytesToSend) + " bytes");
         throw Exception(ErrorCode::PartialSend, "Sent partial data");
     }
 
     Logger::debug("Successfully sent " + std::to_string(numberOfBytes) + " bytes");
 }
 
-Buffer ShiraNet::Sockets::Socket::receive(unsigned int AmountOfBytesToRead) {
-    Buffer receiveBuffer{ AmountOfBytesToRead, "" };
-
+ShiraNet::NetworkData::Buffer ShiraNet::Sockets::Socket::receive(int AmountOfBytesToRead) {
+    NetworkData::Buffer receiveBuffer{ AmountOfBytesToRead, "" };
     unsigned int totalBytesReceived = 0;
-    receiveBuffer.data.resize(AmountOfBytesToRead);
+    receiveBuffer.data.clear();
+    receiveBuffer.data.resize(receiveBuffer.size);
 
     while (totalBytesReceived < AmountOfBytesToRead) {
         ssize_t bytesReceived = 0;
@@ -114,16 +121,36 @@ Buffer ShiraNet::Sockets::Socket::receive(unsigned int AmountOfBytesToRead) {
         totalBytesReceived += bytesReceived;
     }
 
-    auto pos = receiveBuffer.data.find('\0');
-    if (pos != std::string::npos) {
-        receiveBuffer.data.resize(pos);
-    }
     return receiveBuffer;
+}
+
+ShiraNet::NetworkData::Message ShiraNet::Sockets::Socket::receiveMessage() {
+    const int messageIDSize = sizeof(uint32_t);
+    const int payloadSizeSize = sizeof(uint32_t);
+    const int totalBytesToReceive = messageIDSize + payloadSizeSize;
+
+    NetworkData::Buffer receiveBuffer = receive(totalBytesToReceive);
+
+    uint32_t messageID = 0;
+    std::memcpy(&messageID, receiveBuffer.data.data(), sizeof(messageID));
+    uint32_t payloadSize = 0;
+    std::memcpy(&payloadSize, receiveBuffer.data.data() + messageIDSize, sizeof(payloadSize));
+
+    messageID = ntohl(messageID);
+    payloadSize = ntohl(payloadSize);
+
+    ShiraNet::Logger::debug("Message id: " + std::to_string(messageID) + " Payload size:" + std::to_string(payloadSize));
+
+    ShiraNet::NetworkData::Message receivedMessage{ messageID, payloadSize };
+
+    receiveBuffer = receive(payloadSize);
+    receivedMessage.payload = receiveBuffer.data;
+    return receivedMessage;
 }
 
 ShiraNet::Structs::AddressList ShiraNet::Sockets::Socket::getAddresses(char* ServerIP, std::string PortString) {
     struct addrinfo addressCriteria{ 0 };
-    addressCriteria.ai_family = AF_UNSPEC;
+    addressCriteria.ai_family = domain;
     addressCriteria.ai_socktype = type;
     addressCriteria.ai_protocol = protocol;
     ShiraNet::Structs::AddressList returnAddressList{};
