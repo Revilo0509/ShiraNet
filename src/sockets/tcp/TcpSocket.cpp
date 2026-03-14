@@ -7,6 +7,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+ShiraNet::Sockets::TcpSocket::TcpSocket()
+  : Socket() {
+}
+
 ShiraNet::Sockets::TcpSocket::TcpSocket(int Domain)
   : Socket(Domain, SOCK_STREAM, IPPROTO_TCP) {
 }
@@ -51,8 +55,8 @@ ShiraNet::Sockets::TcpSocket ShiraNet::Sockets::TcpSocket::getClientConnection()
 
     int clientSocket = ::accept(socketID, (struct sockaddr*)&clientAddress, &clientAddressLength);
     if (clientSocket < 0) {
-        Logger::error("Failed to accept socket");
-        throw Exception(ErrorCode::AcceptFailed, "Failed to accept socket", errno);
+        Logger::info("Failed to accept socket");
+        return TcpSocket{ AF_UNSPEC };
     }
 
     return TcpSocket{ clientSocket, domain, type, protocol, socketAddress };

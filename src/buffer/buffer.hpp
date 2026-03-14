@@ -33,6 +33,10 @@ namespace ShiraNet::NetworkData {
             payloadSize = PayloadSize;
         };
 
+        Message(uint32_t ID) {
+            id = ID;
+        };
+
         template<typename T>
         Message(uint32_t ID, DataField<T> Data) {
             id = ID;

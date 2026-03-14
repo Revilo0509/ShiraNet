@@ -18,6 +18,7 @@ namespace ShiraNet::Sockets {
     class TcpSocket : public Socket {
     private:
     public:
+        TcpSocket();
         TcpSocket(int Domain);
         TcpSocket(int SocketID, int Domain, int Type, int Protocol, sockaddr_in SocketAddress);
         void connect(char* ServerIP, in_port_t ServerPort);

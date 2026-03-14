@@ -5,13 +5,16 @@
 
 #define BUFFERSIZE 1024
 
+void handleClient(std::shared_ptr<ShiraNet::Sockets::TcpSocket> Client, ShiraNet::Servers::TcpServer* Server) {
+    ShiraNet::NetworkData::Message message = Client->receiveMessage();
+    Client->send(message);
+}
+
 void server() {
-    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5); // this is not the best example for servers since this handles one client at a time
+    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5, handleClient); // this is not the best example for servers since this handles one client at a time
     while (true) {
-        int newClientIndex = server.getConnection();
-        std::cout << server.clientSockets.at(newClientIndex).getAddressInfoToStringIP() << std::endl;
-        ShiraNet::NetworkData::Message message = server.clientSockets.at(newClientIndex).receiveMessage();
-        server.clientSockets.at(newClientIndex).send(message);
+        server.getConnection();
+        std::cout << server.getClient(0)->getAddressInfoToStringIP() << std::endl;
     }
 }
 

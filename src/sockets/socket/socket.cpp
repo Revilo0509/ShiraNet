@@ -14,6 +14,10 @@
 #include <cstring>
 #include <iostream>
 
+ShiraNet::Sockets::Socket::Socket() {
+    isValid = false;
+}
+
 ShiraNet::Sockets::Socket::Socket(int Domain, int Type, int Protocol) {
     domain = Domain;
     type = Type;
@@ -23,10 +27,11 @@ ShiraNet::Sockets::Socket::Socket(int Domain, int Type, int Protocol) {
     socketID = socket(domain, type, protocol);
 
     if (socketID < 0) {
-        Logger::error("Socket creation failed");
-        throw Exception(ErrorCode::SocketCreationFailed, "Failed to create socket", errno);
+        Logger::warning("Socket creation failed");
+        isValid = false;
     }
     Logger::info("Socket created successfully");
+    isValid = true;
 }
 
 ShiraNet::Sockets::Socket::Socket(int SocketID, int Domain, int Type, int Protocol, sockaddr_in SocketAddress) {
@@ -36,6 +41,7 @@ ShiraNet::Sockets::Socket::Socket(int SocketID, int Domain, int Type, int Protoc
     protocol = Protocol;
     socketAddress = SocketAddress;
     Logger::info("Socket class created from existing socket");
+    isValid = true;
 }
 
 ShiraNet::Sockets::Socket::Socket(Socket&& other) noexcept {
@@ -44,6 +50,7 @@ ShiraNet::Sockets::Socket::Socket(Socket&& other) noexcept {
     type = other.type;
     protocol = other.protocol;
     socketAddress = other.socketAddress;
+    isValid = other.isValid;
 
     other.socketID = -1;
 }
@@ -58,6 +65,7 @@ ShiraNet::Sockets::Socket& ShiraNet::Sockets::Socket::operator=(Socket&& other) 
         type = other.type;
         protocol = other.protocol;
         socketAddress = other.socketAddress;
+        isValid = other.isValid;
 
         other.socketID = -1;
     }

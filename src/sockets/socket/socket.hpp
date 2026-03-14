@@ -26,17 +26,20 @@ namespace ShiraNet::Sockets {
         int domain = 0;
         int type = 0;
         int protocol = 0;
+        bool isValid = 0;
         sockaddr_in socketAddress{ 0 };
 
         void addStringIPToAddressInfo(char* ServerIP, std::string PortString);
 
     public:
+        Socket();
         Socket(int Domain, int Type, int Protocol);
         Socket(int SocketID, int Domain, int Type, int Protocol, sockaddr_in SocketAddress);
         Socket(Socket&& other) noexcept;
         Socket& operator=(Socket&& other) noexcept;
         ~Socket();
 
+        bool isSocketValid() { return isValid; };
         void send(NetworkData::Message& Message);
         NetworkData::Buffer receive(int bytesToRead);
         NetworkData::Message receiveMessage();
