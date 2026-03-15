@@ -11,9 +11,9 @@ void handleClient(std::shared_ptr<ShiraNet::Sockets::TcpSocket> Client, ShiraNet
 }
 
 void server() {
-    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5, handleClient); // this is not the best example for servers since this handles one client at a time
+    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5); // this is not the best example for servers since this handles one client at a time
     while (true) {
-        server.getConnection();
+        server.getConnection(handleClient);
         std::cout << server.getClient(0)->getAddressInfoToStringIP() << std::endl;
     }
 }

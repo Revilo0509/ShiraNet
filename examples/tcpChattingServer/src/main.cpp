@@ -9,17 +9,22 @@
 #include <unistd.h>
 
 void handleClient(std::shared_ptr<ShiraNet::Sockets::TcpSocket> Client, ShiraNet::Servers::TcpServer* Server) {
-    while (true) {
-        ShiraNet::NetworkData::Message message = Client->receiveMessage();
-        Server->sendToAll(message);
+    try {
+        while (true) {
+            ShiraNet::NetworkData::Message message = Client->receiveMessage();
+            Server->sendToAllExcept(message, Client);
+        }
+    } catch (...) {
+        std::cout << Client->getAddressInfoToStringIP() + " disconnected\n";
+        Server->removeClient(Client);
     }
 }
 
 void server() {
-    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5, handleClient);
-    server.getConnections();
+    ShiraNet::Servers::TcpServer server(AF_INET, 57942, 5);
 
     while (true) {
+        server.getConnection(handleClient);
     }
 }
 
@@ -75,10 +80,14 @@ void client() {
     ShiraNet::NetworkData::Message messageToSend(0, name);
     socket.send(messageToSend);
 
-    std::thread{ sendMessage, &socket, &name }.detach();
+    std::thread sendMessageThread{ sendMessage, &socket, &name };
     std::thread{ getMessage, &socket }.detach();
 
     while (true) {
+        if (sendMessageThread.joinable()) {
+            sendMessageThread.join();
+            return;
+        }
     }
 }
 

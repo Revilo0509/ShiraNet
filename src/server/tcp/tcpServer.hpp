@@ -13,9 +13,8 @@ namespace ShiraNet::Servers {
 
     class TcpServer {
     private:
-        using ClientHandler = std::function<void(std::shared_ptr<ShiraNet::Sockets::TcpSocket>, ShiraNet::Servers::TcpServer*)>;
+        using ClientHandlerCallback = std::function<void(std::shared_ptr<ShiraNet::Sockets::TcpSocket>, ShiraNet::Servers::TcpServer*)>;
 
-        ClientHandler clientHandler;
         ShiraNet::Sockets::TcpSocket* serverSocket = nullptr;
         std::vector<std::shared_ptr<ShiraNet::Sockets::TcpSocket>> clients;
         std::mutex clientsMutex;
@@ -23,13 +22,17 @@ namespace ShiraNet::Servers {
 
     public:
         // creates the servers socket, binds it and listens
-        TcpServer(int Domain, int Port, int MaxClients, ClientHandler Handler);
+        TcpServer(int Domain, int Port, int MaxClients);
         ~TcpServer();
 
-        void getConnection();  // Accepts any incomming connection, adds it's socket to the clients list
+        void removeClient(std::shared_ptr<ShiraNet::Sockets::TcpSocket> Client);
+        void getConnection(); // Accepts any incomming connection, adds it's socket to the clients list
+        void getConnection(ClientHandlerCallback Callback);
         void getConnections(); // Accepts any incomming connection in a loop run on the serverThread;
+        void getConnections(ClientHandlerCallback Callback);
         std::shared_ptr<ShiraNet::Sockets::TcpSocket> getClient(int i);
         void sendToAll(ShiraNet::NetworkData::Message Message);
+        void sendToAllExcept(ShiraNet::NetworkData::Message Message, std::shared_ptr<ShiraNet::Sockets::TcpSocket> Client);
     };
 
 }
